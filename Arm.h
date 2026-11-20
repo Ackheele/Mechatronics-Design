@@ -1,10 +1,7 @@
 #pragma once
 #include <Arduino.h>
 #include <Servo.h>
-// ---- Pins ----
-const int largeSV_PIN  = 24;
-const int linkSV_PIN   = 25;
-const int bucketSV_PIN = 26;
+#include "Pins.h"   // largeSV_PIN = 8, linkSV_PIN = 9, bucketSV_PIN = 10
 
 struct Pose {
   int large;
@@ -12,7 +9,7 @@ struct Pose {
   int bucket;
 };
 
-// ---- EDIT THESE ----s
+// ---- EDIT THESE ----
 Pose HOME   = {170, 180, 175};
 Pose PICKUP = { 20, 160,   5};
 Pose DROP = {20, 165, 60};
