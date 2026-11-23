@@ -12,7 +12,7 @@ const int RIGHT_PWM_PIN = 6;    // PWM2
 const int RIGHT_DIR_PIN = 7;    // DIR2
 
 // ---- Ultrasonics (HC-SR04, each with its own Trig + Echo, 5 V) ----
-const int US_BOTTOM_TRIG_PIN = 22;   // front-bottom (box detection)
+const int US_BOTTOM_TRIG_PIN = 22;   // front-bottom
 const int US_BOTTOM_ECHO_PIN = 23;
 const int US_TOP_TRIG_PIN  = 46;   // front-top
 const int US_TOP_ECHO_PIN  = 47;

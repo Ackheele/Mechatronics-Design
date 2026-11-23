@@ -4,48 +4,12 @@
 #include "Drive.h"     // Motor.h, IMU.h, Ultrasonics.h
 
 // ---- Modes ----
-const bool DIAGNOSTIC_MODE = true;    // true = motors OFF, only print heading + all ultrasonics
+const bool DIAGNOSTIC_MODE = false;    // true = motors OFF, only print heading + all ultrasonics
 const bool USE_ARM = false;
-
-// ---- Box detection ----
-const float BOX_DETECT_CM = 15.0;
-const int BOX_CONFIRM = 3;
-
-int boxCount = 0;
-bool boxFound = false;
 
 // ---- Serial printing ----
 unsigned long lastPrint = 0;
 const unsigned long PRINT_INTERVAL = 200;
-
-// ---- Box detection ----
-bool boxDetected() {
-  float bottom = readUltrasonicCm(BOTTOM_SENSOR);
-  float top = readUltrasonicCm(FRONT_SENSOR);
-
-  bool bottomSeesObject =
-      (bottom >= 0 && bottom < BOX_DETECT_CM);
-
-  bool topSeesObject =
-      (top >= 0 && top < BOX_DETECT_CM);
-
-  return bottomSeesObject && !topSeesObject;
-}
-
-// ---- Update box confirmation ----
-void updateBoxCount() {
-  if (boxDetected()) {
-    boxCount++;
-  } else {
-    boxCount = 0;
-  }
-
-  if (boxCount >= BOX_CONFIRM) {
-    boxFound = true;
-    robotStop();
-    Serial.println("BOX CONFIRMED - ROBOT STOPPED");
-  }
-}
 
 // ---- Print one distance ----
 void printCm(const char* label, float cm) {
@@ -72,16 +36,6 @@ void printSensorReadings() {
   printCm(" | FRONT: ", front);
   printCm(" | LEFT: ", left);
   printCm(" | RIGHT: ", right);
-
-  Serial.print(" | BOX COUNT: ");
-  Serial.print(boxCount);
-  Serial.print("/");
-  Serial.print(BOX_CONFIRM);
-
-  if (boxFound) {
-    Serial.print(" | BOX FOUND");
-  }
-
   Serial.println();
 }
 
@@ -104,34 +58,29 @@ void runDiagnostic() {
     printCm(" | FRONT-TOP: ", distances[FRONT_SENSOR]);
     printCm(" | RIGHT: ",     distances[RIGHT_SENSOR]);
     printCm(" | LEFT: ",      distances[LEFT_SENSOR]);
-
-    // Same rule as boxDetected(): bottom sees something close, top doesn't
-    bool bottomSees = distances[BOTTOM_SENSOR] >= 0 && distances[BOTTOM_SENSOR] < BOX_DETECT_CM;
-    bool topSees    = distances[FRONT_SENSOR]  >= 0 && distances[FRONT_SENSOR]  < BOX_DETECT_CM;
-    Serial.print(" | BOX?: ");
-    Serial.println((bottomSees && !topSees) ? "YES" : "no");
+    Serial.println();
 
     pauseWithHeading(100);
   }
 }
 
-// ---- Called during driving ----
-bool whileDriving() {
-  if (boxFound) {
-    robotStop();
-    return true;
-  }
-
-  updateBoxCount();
-  printSensorReadings();
-
-  if (boxFound) {
-    robotStop();
-    return true;
-  }
-
-  return false;
+void phaseA(){
+  driveUntilDistance(0, 13, FRONT_SENSOR, 0.35);
+  turnToHeading(90);
+  driveUntilDistance(90, 25, FRONT_SENSOR, 0.35);
+  driveUntilDistance(90, 10, FRONT_SENSOR, 0.30);
+  turnToHeading(180);
+  robotStop();
 }
+
+void phaseB(){
+  driveUntilDistance(0, 13, FRONT_SENSOR, 0.35);
+  turnToHeading(90);
+  driveUntilDistance(90, 13, FRONT_SENSOR, 0.35);
+  turnToHeading(180);
+  driveUntilDistance(180, 13, FRONT_SENSOR, 0.35);
+}
+
 
 // ---- Setup ----
 void setup() {
@@ -159,20 +108,18 @@ void setup() {
   // ---- Original movement sequence ----
 
   // Start of Phase A, goes forward turns left, goes forward, turns right, goes forward
-  driveUntilDistance(0, 10, FRONT_SENSOR, 0.4);
-  turnToHeading(270);
-  driveUntilDistance(270, 10, FRONT_SENSOR, 0.4);
-  turnToHeading(0);
-  driveUntilDistance(0, 10, FRONT_SENSOR, 0.4);
-  turnToHeading(90);
+  phaseA();
+  delay(1000);
+  imuInit();
+  phaseB();
   
   // At start of phase B, goes down the ramp, stops infront of the maze
-  driveUntilDistance(90, 10, FRONT_SENSOR, 0.5);
-  turnToHeading(180);
-  driveUntilDistance(180, 10, FRONT_SENSOR, 0.4);
-  turnToHeading(270);
-  driveUntilDistance(270, 40, FRONT_SENSOR, 0.4);
-  turnToHeading(0);
+  //driveUntilDistance(90, 10, FRONT_SENSOR, 0.5);
+  //turnToHeading(180);
+  //driveUntilDistance(180, 10, FRONT_SENSOR, 0.4);
+  //turnToHeading(270);
+  //driveUntilDistance(270, 40, FRONT_SENSOR, 0.4);
+  //turnToHeading(0);
 
   robotStop();
 
@@ -186,8 +133,4 @@ void setup() {
 // ---- Loop ----
 void loop() {
   updateHeading();
-
-  if (whileDriving()) {
-    robotStop();
-  }
 }

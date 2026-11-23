@@ -4,7 +4,6 @@
 #include "IMU.h"
 #include "Ultrasonics.h"
 
-bool whileDriving();
 // ---- General ----
 const long move_del = 1000;            // pause after each move
 
@@ -13,8 +12,8 @@ const float JOLT_POWER = 0.6;
 const unsigned long JOLT_MS = 40;
 
 // ---- Turn tuning ----
-const float MAX_SPEED  = 0.40;
-const float MIN_SPEED  = 0.30;
+const float MAX_SPEED  = 0.80;
+const float MIN_SPEED  = 0.50;
 const float KP         = 0.02;
 const float TOLERANCE  = 2.5;
 const unsigned long SETTLE_MS = 200;
@@ -123,7 +122,6 @@ void driveForward(float targetHeading, unsigned long ms = 1000, float manSPEED =
   bool stopAtHeading = fabs(err) > TOLERANCE;
 
   while (millis() - start < ms) {
-    if (whileDriving()) break; 
     updateHeading();
     err = wrapAngle(targetHeading - heading);
 
@@ -168,7 +166,6 @@ void driveUntilDistance(float targetHeading, float stopCm, int index, float manS
   updateHeading();
 
   while (true) {
-    if (whileDriving()) break; 
     updateHeading();
     float err = wrapAngle(targetHeading - heading);
 
