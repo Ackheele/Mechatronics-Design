@@ -1,10 +1,12 @@
 #pragma once
 #include <Arduino.h>
 #include "CytronMotorDriver.h"
+#include "Pins.h"
 
-// ---- Pins ----
-CytronMD leftside(PWM_DIR, 6, 7);
-CytronMD rightside(PWM_DIR, 5, 4);
+// ---- Motors (pins in Pins.h) ----
+// M1 (D5/D4) = left side, M2 (D6/D7) = right side, as in the wiring diagram.
+CytronMD leftside(PWM_DIR, LEFT_PWM_PIN, LEFT_DIR_PIN);
+CytronMD rightside(PWM_DIR, RIGHT_PWM_PIN, RIGHT_DIR_PIN);
 
 // speed is -1.0 to 1.0
 void motorMove(CytronMD &drive, float speed) {

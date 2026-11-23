@@ -2,7 +2,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 
-// ** ARDUINO DUE **: IMU is on Wire = pins 20 (SDA) / 21 (SCL), powered from 3.3V.
+// Arduino Mega 2560: IMU is on Wire = pins 20 (SDA) / 21 (SCL), powered from 3.3V.
 
 // ---- Settings ----
 const uint8_t MPU_ADDR  = 0x68;

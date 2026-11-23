@@ -3,21 +3,22 @@
 #include <Ultrasonic.h>
 #include "IMU.h"          // readUltrasonicCm() calls updateHeading()
 
-// ---- Pins ----
-const int TRIG_PIN = 22;                       // all four Trig pins joined here
+#include "Pins.h"
+
+// ---- Sensors (pins in Pins.h, each has its own Trig + Echo) ----
 const unsigned long US_TIMEOUT_US = 12000;     // ~2 m max range
 
-Ultrasonic ultrasonic1(TRIG_PIN, 30, US_TIMEOUT_US);   // bottom, Echo via divider
-Ultrasonic ultrasonic2(TRIG_PIN, 31, US_TIMEOUT_US);   // top
-Ultrasonic ultrasonic3(TRIG_PIN, 34, US_TIMEOUT_US);   // right
-Ultrasonic ultrasonic4(TRIG_PIN, 33, US_TIMEOUT_US);   // left (45 deg)
+Ultrasonic ultrasonic1(US_BOTTOM_TRIG_PIN, US_BOTTOM_ECHO_PIN, US_TIMEOUT_US);   // front-bottom
+Ultrasonic ultrasonic2(US_TOP_TRIG_PIN,    US_TOP_ECHO_PIN,    US_TIMEOUT_US);   // front-top
+Ultrasonic ultrasonic3(US_RIGHT_TRIG_PIN,  US_RIGHT_ECHO_PIN,  US_TIMEOUT_US);   // right side
+Ultrasonic ultrasonic4(US_LEFT_TRIG_PIN,   US_LEFT_ECHO_PIN,   US_TIMEOUT_US);   // left side
 
 // ---- Sensor indexes (use these names instead of 0-3) ----
 const int NUM_US        = 4;
 const int BOTTOM_SENSOR = 0;   // US1
-const int FRONT_SENSOR  = 1;   // US2 top (wall distance)
+const int FRONT_SENSOR  = 1;   // US2 front-top (wall distance)
 const int RIGHT_SENSOR  = 2;   // US3
-const int LEFT_SENSOR   = 3;   // US4 (45 deg)
+const int LEFT_SENSOR   = 3;   // US4
 
 Ultrasonic* sensors[NUM_US] = {&ultrasonic1, &ultrasonic2, &ultrasonic3, &ultrasonic4};
 const char* US_NAMES[NUM_US] = {"Bottom", "Top", "Right", "Left"};
@@ -25,16 +26,41 @@ const char* US_NAMES[NUM_US] = {"Bottom", "Top", "Right", "Left"};
 // ---- Settings ----
 const unsigned long US_GAP_MS = 20;   // quiet time between sensors
 const float MIN_VALID_CM      = 4.0;  // anything closer is treated as a bad reading
+// An HC-SR04 needs ~60 ms between its own pings, and two sensors pinging
+// back-to-back hear each other's echoes. Pinging too fast gives fake
+// "NO READING"s and random 200 cm values, so readUltrasonicCm() enforces:
+const unsigned long US_SAME_SENSOR_MS = 60;  // same sensor asked again sooner -> return its last value
+const unsigned long US_ANY_SENSOR_MS  = 15;  // minimum quiet time between ANY two pings
 
 // ---- State ----
 float distances[NUM_US];              // latest readings, -1 = no echo
+float usLastCm[NUM_US]          = {-1, -1, -1, -1};
+unsigned long usLastPingMs[NUM_US] = {0, 0, 0, 0};
+unsigned long usLastAnyPingMs   = 0;
 
 // Returns cm, or -1 for no echo / impossibly close readings.
+// Safe to call as often as you like: it never pings faster than the sensors can handle.
 float readUltrasonicCm(int i) {
+  if (i < 0 || i >= NUM_US) return -1;
+
+  // Same sensor pinged very recently: reuse that reading.
+  if (usLastPingMs[i] != 0 && millis() - usLastPingMs[i] < US_SAME_SENSOR_MS) {
+    return usLastCm[i];
+  }
+
+  // Another sensor just pinged: let its echo die out first.
+  unsigned long sinceAny = millis() - usLastAnyPingMs;
+  if (usLastAnyPingMs != 0 && sinceAny < US_ANY_SENSOR_MS) {
+    pauseWithHeading(US_ANY_SENSOR_MS - sinceAny);
+  }
+
   unsigned int cm = sensors[i]->read();
+  usLastPingMs[i] = millis();
+  usLastAnyPingMs = usLastPingMs[i];
   updateHeading();                    // catch up after the ping's wait
-  if (cm == 0 || cm < MIN_VALID_CM) return -1;
-  return (float)cm;
+
+  usLastCm[i] = (cm == 0 || cm < MIN_VALID_CM) ? -1 : (float)cm;
+  return usLastCm[i];
 }
 
 // Reads all four one after another with a quiet gap between them.
