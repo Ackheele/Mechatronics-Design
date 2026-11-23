@@ -4,7 +4,7 @@
 #include "Drive.h"     // Motor.h, IMU.h, Ultrasonics.h
 
 // ---- Modes ----
-const bool DIAGNOSTIC_MODE = false;    // true = motors OFF, only print heading + all ultrasonics
+const bool DIAGNOSTIC_MODE = true;    // true = motors OFF, only print heading + all ultrasonics
 const bool USE_ARM = false;
 
 // ---- Box detection ----
@@ -90,7 +90,7 @@ void runDiagnostic() {
   robotStop();
   Serial.println();
   Serial.println("===== DIAGNOSTIC MODE: motors OFF, printing sensors =====");
-  Serial.println("Pins: BOTTOM 22/23 | FRONT-TOP 28/29 | RIGHT 24/25 | LEFT 26/27 (Trig/Echo)");
+  Serial.println("Pins: BOTTOM 22/23 | FRONT-TOP 46/47 | RIGHT 24/25 | LEFT 26/27 (Trig/Echo)");
   Serial.println("Turn the robot by hand to check heading; hold a hand in front of each sensor.");
 
   while (true) {

@@ -14,11 +14,11 @@ const int RIGHT_DIR_PIN = 7;    // DIR2
 // ---- Ultrasonics (HC-SR04, each with its own Trig + Echo, 5 V) ----
 const int US_BOTTOM_TRIG_PIN = 22;   // front-bottom (box detection)
 const int US_BOTTOM_ECHO_PIN = 23;
-const int US_TOP_TRIG_PIN  = 24;   // right side
-const int US_TOP_ECHO_PIN  = 25;
+const int US_TOP_TRIG_PIN  = 46;   // front-top
+const int US_TOP_ECHO_PIN  = 47;
 const int US_LEFT_TRIG_PIN   = 26;   // left side
 const int US_LEFT_ECHO_PIN   = 27;
-const int US_RIGHT_TRIG_PIN    = 28;   // front-top (wall distance)
+const int US_RIGHT_TRIG_PIN    = 28;   // right side
 const int US_RIGHT_ECHO_PIN    = 29;
 
 // ---- Encoders (wired, not used in code yet) ----
