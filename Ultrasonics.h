@@ -42,6 +42,7 @@ float usLastCm[NUM_US]             = {-1, -1, -1, -1};
 unsigned long usLastPingMs[NUM_US] = {0, 0, 0, 0};
 unsigned long usLastAnyPingMs      = 0;
 bool usReady = false;
+bool usTooClose[NUM_US] = {false, false, false, false};   // last reading was closer than MIN_VALID_CM
 
 // ---- Stats (printed by the diagnostic) ----
 unsigned long usPings[NUM_US], usGood[NUM_US], usBusy[NUM_US], usNoEcho[NUM_US], usRange[NUM_US];
@@ -62,6 +63,7 @@ void usResetStats() {
 // One real ping. Returns cm, or -1.
 float pingCm(int i) {
   usPings[i]++;
+  usTooClose[i] = false;
 
   // Sensor still busy with its previous ping? Wait for it (up to US_BUSY_WAIT_MS).
   unsigned long t = millis();
@@ -82,6 +84,7 @@ float pingCm(int i) {
   if (us == 0) { usNoEcho[i]++; return -1; }
 
   float cm = us / 58.0;
+  usTooClose[i] = (cm < MIN_VALID_CM);       // -1 below can mean "touching the wall", not "nothing there"
   if (cm < MIN_VALID_CM || cm > MAX_VALID_CM) { usRange[i]++; return -1; }
 
   usGood[i]++;

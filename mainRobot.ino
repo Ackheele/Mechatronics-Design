@@ -3,9 +3,10 @@
 #include "Arm.h"
 #include "Drive.h"     // Motor.h, IMU.h, Ultrasonics.h
 #include "Encoders.h"  // rear wheel encoders
+#include "WallFollow.h" // right-wall maze following
 
 // ---- Modes ----
-const bool ENCODER_TEST_MODE = true;  // true = Serial-controlled encoder test (never drives off). ROBOT ON A BOX!
+const bool ENCODER_TEST_MODE = false;  // true = Serial-controlled encoder test (never drives off). ROBOT ON A BOX!
 const bool DIAGNOSTIC_MODE = false;    // true = only print heading + all ultrasonics (never drives off)
 const bool DIAG_MOTORS_ON  = false;   // with DIAGNOSTIC_MODE: spin the wheels too. PUT THE ROBOT ON A BOX FIRST!
 const float DIAG_MOTOR_POWER = 0.4;   // same as FORWARD_SPEED, so the electrical noise matches real driving
@@ -95,6 +96,9 @@ void runDiagnostic() {
 //   W       watch counts with motors off (turn a wheel by hand to calibrate)
 //   Z       zero both counts
 //   F 10    drive 10 cm forward (F -10 = backward)  <- robot ON THE FLOOR for this one
+//   M R     follow the RIGHT wall at ~5 cm, stop at the first gap   <- on the floor, next to a wall
+//   M L 7   follow the LEFT wall at 7 cm, stop at the first gap
+//   S       print front / right / left distances once (check the 5 cm side gap)
 void runEncoderTest() {
   robotStop();
   Serial.println();
@@ -102,7 +106,7 @@ void runEncoderTest() {
   Serial.print("Counts per wheel turn: "); Serial.println(COUNTS_PER_REV, 0);
   Serial.print("Wheel: "); Serial.print(WHEEL_DIAMETER_CM, 2); Serial.print(" cm dia, ");
   Serial.print(COUNTS_PER_CM, 1); Serial.println(" counts per cm");
-  Serial.println("Commands: R <turns> | L <turns> | F <cm> | W (watch) | Z (zero)   e.g.  R 1   F 10");
+  Serial.println("Commands: R <turns> | L <turns> | F <cm> | M R/L [cm] | S | W | Z   e.g.  R 1   F 10   M R");
 
   while (true) {
     updateHeading();
@@ -118,6 +122,21 @@ void runEncoderTest() {
       if (cm == 0) cm = 10;
       resetDirection();                          // "straight" = the way it faces right now
       driveCm(cm);
+    } else if (c == 'M') {
+      String rest = Serial.readStringUntil('\n');   // e.g. " R" or " L 7"
+      rest.trim();
+      rest.toUpperCase();
+      Side side = (rest.length() > 0 && rest[0] == 'L') ? LEFT_SIDE : RIGHT_SIDE;
+      float cm = (rest.length() > 1) ? rest.substring(1).toFloat() : 0;
+      if (cm <= 0) cm = SIDE_GAP_CM;
+      resetDirection();                          // "straight" = the way it faces right now
+      followWall(side, cm);
+    } else if (c == 'S') {
+      readAllUltrasonics();
+      printCm("FRONT: ", distances[FRONT_SENSOR]);
+      printCm(" | RIGHT: ", distances[RIGHT_SENSOR]);
+      printCm(" | LEFT: ", distances[LEFT_SENSOR]);
+      Serial.println();
     } else if (c == 'W') {
       encoderWatch();
     } else if (c == 'Z') {
@@ -198,7 +217,9 @@ void setup() {
   //turnAround();
   // resetDirection();            // only if the robot was re-placed / re-aligned by hand
   //
-  // followRightWall(60000);      // right-hand-rule maze for up to 60 s (start with a wall on the right)
+  // followRightWall();           // along the right wall at ~5 cm, stops at the first gap
+  // followLeftWall(7.0);         // along the left wall at 7 cm
+  // if (followRightWall() == WALL_GAP) { driveCm(10); turnR(); }   // react to why it stopped
 
   // ---- Original movement sequence ----
 
@@ -215,7 +236,8 @@ void setup() {
   //turnToHeading(270);
   //driveUntilDistance(270, 40, FRONT_SENSOR, 0.4);
   //turnToHeading(0);
-
+  Serial.println("FOLLOWING RIGHT WALL");
+  followLeftWall(5.0);  
   robotStop();
 
   if (USE_ARM) {
